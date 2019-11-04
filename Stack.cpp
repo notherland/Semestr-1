@@ -37,7 +37,7 @@ int main()
     StackPush (&stack, 13);
     int b = StackPop(&stack);
     StackPush (&stack, 21);
-    printf("POP - %d\n", b);
+    printf("TOP - %d\n", b);
 
     for (int i = 0; i < stack.size; i++)
         printf ("Elem[%d] = %d\n", i, stack.data[i]);
@@ -59,8 +59,8 @@ char StackPop(Stack_t *stack)
 {
     if (StackOK(stack))
         Dump(stack);
-    char top = stack->data[stack->size];
-    printf ("%d", top);
+    char top = stack->data[stack->size - 1];
+   // printf ("%d", top);
     DellMem(stack);
     stack->size--;
     return top;
