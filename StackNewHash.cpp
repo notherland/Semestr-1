@@ -1,217 +1,174 @@
-#include <iostream>
 #include <stdio.h>
 #include <cmath>
 #include <assert.h>
+#include <stdlib.h>
 
-struct Stack_t
-{
-    char* data;
-    size_t size;
-    int error;
-    long long hash;
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_WHITE     "\x1b[37m"
+#define ANSI_COLOR_YELLOW    "\x1b[33m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+
+const char FAIL = 0;
+const char SUCCESS = 1;
+const char ST_FULL = 2;
+const char ST_EMPTY = 3;
+const char NULL_PTRS = 4;
+const char DATANULLPTR = 5;
+const char SIZENULLPTR = 6;
+const int MAXSIZE = 3;
+const int MINSIZE = 0;
+struct stack {
+    char *data; //указательн на начало памяти стека
+    int size; //количество элементов в стеке
+    //size_t maxsize;
+    int Errorcode;
 };
 
-bool StackPush(Stack_t *stack, char new_elem);
-char StackPop(Stack_t *stack);
+char Pop(struct stack *st_ptrs);
 
-void AddMem(Stack_t *stack);
-void DellMem (Stack_t *stack);
+void Push(struct stack *st_ptrs, char x);
 
-bool StackOK (Stack_t *stack);
-void Dump (Stack_t *stack);
+bool StackOK(struct stack *st_ptrs);
 
-void StackDestroy (Stack_t *stack);
+void Dump(struct stack *st_ptrs);
 
-void StackHashAdd(Stack_t *stack);
-void StackHashDown(Stack_t *stack);
-long long CheckHash (Stack_t *stack);
-void StackAssert (Stack_t *stack);
+void Mem_increase(struct stack *st_ptrs);
 
-int Degree (int a, int n);
+void Mem_reduce(struct stack *st_ptrs);
+
+void Stack_Init(struct stack *st_ptrs);
+
+void Stack_Destraction(struct stack *st_ptrs);
 
 
-const int MAXSIZE  = 100;
-const int MINSIZE = 1;
+int main() {
 
-const int NULLPTR = 228;
-const int BOTTOM_EXIT = 69;
-const int TOP_EXIT = 1337;
-const int HACK_ERROR = 1001;
 
-const int FAIL = 1;
-const int SUCCESS = 0;
-
-const int SLOT = 1;
-
-const long long KEY = 2;
-
-int main()
-{
-    Stack_t stack = {NULL, 0, 0, 0};
-    stack.data = (char*)calloc(MINSIZE, sizeof(char));//Тут я создаю calloc нулевого размера , может быть лажа
-    //НАЧАЛО ВВОДА
-    StackPush (&stack, 28);
-    StackPush (&stack, 123);
-    StackPush (&stack, 13);
-    StackPush (&stack, 21);
-    StackPush (&stack, 1);
-    int b = StackPop(&stack);
-    //КОНЕЦ ВВОДА
-
-        printf ("HASH - %lld\n", stack.hash);
-        printf("TOP - %d\n", b);
-        for (int i = 0; i < stack.size; i++)
-            printf("Elem[%d] = %d\n", i, stack.data[i]);
-
-    StackDestroy(&stack);
+    struct stack st;
+    Stack_Init(&st);
+    char x = NAN, elem;
+    //scanf("%c", &x);
+    Stack_Init(&st);
+    Push(&st, 'c');
+    Push(&st, 'b');
+    Push(&st, 'a');
+    Push(&st, 'A');
+    printf("Last element is:%c\n", Pop(&st));
+    printf("Last element is:%c\n", Pop(&st));
+    printf("Last element is:%c\n", Pop(&st));
+    printf("Last element is:%c\n", Pop(&st));
+    Stack_Destraction(&st);
     return 0;
+
 }
 
-bool StackPush(Stack_t *stack, char new_elem)
-{
-    //if (StackOK)
-    //    Dump(stack);
-    StackAssert(stack);
-    AddMem(stack);
-    stack->data[stack->size - 1] = new_elem;
-    StackHashAdd(stack);
-    //if(StackOK)
-    //    Dump(stack);
-    StackAssert(stack);
+void Stack_Init(struct stack *st_ptrs) {
+    assert (st_ptrs);
+    st_ptrs->size = 0;
+    //st_ptrs->maxsize = MAXSIZE;
+    st_ptrs->data = (char *) calloc(st_ptrs->size, sizeof(char));
+    st_ptrs->Errorcode = -1;
+    if (!StackOK(st_ptrs)) {
+        Dump(st_ptrs);
+        return;
+    }
+
+}
+
+void Push(struct stack *st_ptrs, char x) {
+    assert (st_ptrs);
+    printf( ANSI_COLOR_YELLOW "Putting element %c into stack\n" ANSI_COLOR_WHITE, x);
+    st_ptrs->size = st_ptrs->size + 1;
+    if (!StackOK(st_ptrs)) {
+        Dump(st_ptrs);
+        return;
+    }
+    Mem_increase(st_ptrs);
+    st_ptrs->data[st_ptrs->size] = x;
+    if (!StackOK(st_ptrs)) {
+        Dump(st_ptrs);
+
+        return;
+    }
+    printf(ANSI_COLOR_GREEN"Elem %c has been put in Stack\n" ANSI_COLOR_WHITE, x);
+}
+
+char Pop(struct stack *st_ptrs) {
+    assert(st_ptrs);
+    printf(ANSI_COLOR_YELLOW"Taking last element out of stack\n" ANSI_COLOR_WHITE);
+    st_ptrs->size = st_ptrs->size - 1;
+    if (!StackOK(st_ptrs)) {
+        Dump(st_ptrs);
+        return '_';
+    }
+    Mem_reduce(st_ptrs);
+    //printf("%d", st_ptrs->size);
+    printf(ANSI_COLOR_GREEN "Element %c has been taken out of stack\n" ANSI_COLOR_WHITE, st_ptrs->data[st_ptrs->size + 1]);
+    return st_ptrs->data[st_ptrs->size + 1];
+
+}
+
+bool StackOK(struct stack *st_ptrs) {
+    assert(st_ptrs);
+   // printf ("|!%d|\n", st_ptrs->size);
+    if (st_ptrs->data == nullptr) {
+        st_ptrs->Errorcode = DATANULLPTR;
+        return FAIL;
+    }
+    /*if (st_ptrs->size == nullptr) {
+        st_ptrs->Errorcode = SIZENULLPTR;
+        return FAIL;}*/
+    if (st_ptrs->size < MINSIZE) {
+        st_ptrs->size += 1;
+        st_ptrs->Errorcode = ST_EMPTY;
+        return FAIL;
+    }
+    if (st_ptrs->size > MAXSIZE) {
+        st_ptrs->size = st_ptrs->size - 1;
+        st_ptrs->Errorcode = ST_FULL;
+        return FAIL;
+    }
 
     return SUCCESS;
 }
 
-char StackPop(Stack_t *stack)
-{
-    //if (StackOK(stack))
-    //    Dump(stack);
-    StackAssert (stack);
-    char top = stack->data[stack->size - 1];
-    DellMem(stack);
-    StackHashDown(stack);
-    //if (StackOK(stack))
-    //    Dump(stack);
-    StackAssert (stack);
-
-    return top;
-}
-
-void AddMem(Stack_t *stack)
-{
-    stack->data = (char*)realloc(stack->data, stack->size + SLOT);
-    stack->size++;
-}
-
-void DellMem (Stack_t *stack)
-{
-    stack->data = (char*)realloc(stack->data, stack->size - SLOT);
-    stack->size--;
-}
-
-bool StackOK (Stack_t *stack)
-{
-    assert(stack);
-
-    if (stack->data == NULL)
-    {
-        stack->error = NULLPTR;
-        return FAIL;
-    }
-
-    if (stack->size < MINSIZE)
-    {
-        stack->error = BOTTOM_EXIT;
-        return FAIL;
-    }
-
-    if (stack->size >= MAXSIZE )
-    {
-        stack->error = TOP_EXIT;
-        return FAIL;
-    }
-    if (stack->hash != CheckHash(stack))
-    {
-        //printf("CheckHash - %lld\n", CheckHash(stack));
-        stack->error = HACK_ERROR;
-        return FAIL;
-    }
-
-    return SUCCESS;
-}
-
-void Dump(Stack_t *stack)
-{
-    //printf("Size: %d", stack->size);
-    switch (stack->error)
-    {
-        case 69:
-        {
-            printf("Going beyond the bottom of the array");
-            //StackDestroy(stack);
-            //stack->error = -1;
+void Dump(struct stack *st_ptrs) {
+    printf(ANSI_COLOR_RED "There is an error:\n");
+    printf(ANSI_COLOR_WHITE"Stack size %d\n", st_ptrs->size);
+    switch (st_ptrs->Errorcode) {
+        case 2: {
+            printf("Stack is overflow\n");
             break;
         }
-        case 1337:
-        {
-            printf("Exceeding the upper bound of the array");
-            //StackDestroy(stack);
-            //stack->error = -1;
+        case 3: {
+            printf("Stack is empty\n");
             break;
         }
-        case 228:
-        {
-            printf("Array error");
-            //StackDestroy(stack);
-            //stack->error = -1;
+            //  case 4: {printf ("Stack is overflow"); break;};
+        case 5: {
+            printf("Null pointer to data\n");
             break;
         }
-        case HACK_ERROR:
-        {
-            printf( "HACK");
+        case 6: {
+            printf("Null pointer to size\n");
             break;
         }
-
     }
+    return;
+
 }
 
-void StackDestroy (Stack_t *stack)
-{
-    //stack->data = (char*)realloc(stack->data, MINSIZE);
-    //stack->size = MINSIZE;
-    free(stack->data);
+void Mem_increase(struct stack *st_ptrs) {
+    st_ptrs->data = (char *) realloc(st_ptrs->data, st_ptrs->size + 1);
 }
 
-void StackHashAdd(Stack_t *stack)
-{
-    stack->hash = stack->hash + stack->data[stack->size - 1] * Degree(KEY, stack->size);
+void Mem_reduce(struct stack *st_ptrs) {
+    st_ptrs->data = (char *) realloc(st_ptrs->data, st_ptrs->size + 1);
 }
 
-void StackHashDown(Stack_t *stack)
-{
-    stack->hash = stack->hash - stack->data[stack->size - 1] * Degree(KEY, stack->size);
-}
-
-int Degree (int a, int n)
-{
-    for (int i = 0; i < n ; i++)
-        a = a * a;
-    return a;
-}
-
-long long CheckHash (Stack_t *stack)
-{
-    int hash = 0;
-    for (int i = 0; i < stack->size; i++)
-        hash = hash + stack->data[i] * Degree(KEY, i);
-    return hash;
-}
-
-void StackAssert (Stack_t *stack)
-{
-    if (StackOK(stack))
-    {
-        Dump(stack);
-        abort();
-    }
+void Stack_Destraction(struct stack *st_ptrs) {
+    free(st_ptrs->data);
+    st_ptrs->size = 0;
+    st_ptrs->Errorcode = 0;
+    //  st_ptrs->maxsize = 0;
 }
